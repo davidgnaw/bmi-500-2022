@@ -24,11 +24,10 @@ figure
 subplot(nr,nc,1)
 hold on
 
-%%% YOUR CODE HERE
-
 % Filter out large, slow movements with a high-pass butterworth filter at 2
 % Hz cutoff and filter out jitter with a low-pass butterworth filter at 20
 % Hz cutoff. A 6th order filter is fine.
+
 
 % sampling freq fs is the reciprocal of the difference between two points
 fs = 1/mean(diff(t));
@@ -36,20 +35,47 @@ fs = 1/mean(diff(t));
 % cutoff frequencies for the filter
 fc_hi = 2;
 fc_lo = 20;
+n_order = 6;
+
+% high-pass filter
+[b, a] = butter(n_order, fc_hi/(fs/2), "high");
+filt1 = filtfilt(b, a, marker_xyz);
+
+% low-pass filter
+[y, x] = butter(n_order, fc_lo/(fs/2), "low");
+filt2 = filtfilt(y, x, filt1);
 
 % [b,a] = butter(n,Wn) returns the transfer function coefficients of an 
 % nth-order lowpass digital Butterworth filter with normalized 
 % cutoff frequency Wn [https://www.mathworks.com/help/signal/ref/butter.html]
 
-%%% YOUR CODE HERE
-
 % calculate the first PC
 
-%%% YOUR CODE HERE
+% find covariance matrix
+C = cov(filt2);
+
+% find eigen vector to find PC
+[evector, evalue] = eig(C);
+
+% note from above that largest eigenvalue is 50.1646 where eigenvector is
+% 0.9732 and at evector(:,3) third column
+e = diag(evalue);
+[max_evalue, max_index] = max(e);
+
+u = evector(:,max_index);
+% filt2 (3600 x 3) * u (3 x 1) = (3600 x 1)
+PC = filt2 * u; % new principle component
 
 % calculate projection onto first PC
 
-%%% YOUR CODE HERE
+% transpose u to 3 x 3600 to multiple with PC 3600 x 1 to get 3600 x 3
+proj = PC * u';
+
+% plot projection
+s1 = scatter3(filt2(:,1), filt2(:,2), filt2(:,3));
+alpha(s1, 0.2)
+hold on;
+s2 = scatter3(proj(:,1), proj(:,2), proj(:,3));
 
 % smooth with a savitsky-golay smoother
 proj_smooth = smoothdata(proj,'sgolay');
